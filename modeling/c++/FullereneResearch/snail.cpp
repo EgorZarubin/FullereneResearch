@@ -92,8 +92,8 @@ class SnailStructure
 
 public:
 	SnailStructure() {
-		fopen_s(&file, "result1.out", "w");
-		fprintf(file, "%s %s %s  %s  %s  %s %s \n", "ATOM", "TYPE", "POSITION(Astrm)", "VELOCITY(km/s)", "KE(eV)", "PE(eV)", "TE(eV)");
+		fopen_s(&file, "result1.txt", "w");
+		//fprintf(file, "%s %s %s  %s  %s  %s %s \n", "ATOM", "TYPE", "POSITION(Astrm)", "VELOCITY(km/s)", "KE(eV)", "PE(eV)", "TE(eV)");
 	}
 
 	SnailStructure(const char * fileName) {
@@ -112,8 +112,8 @@ public:
 
 		Amount++;
 		
-		fprintf(file, "%d %s %15.4f  %15.4f  %15.4f  %d %d %d %d %d %d %d %d \n", Amount, str, p.x, p.y, p.z, 0, 0, 0, 0, 0, 0, 1, 0);
-		//fprintf(file, "%15.4f  %15.4f  %15.4f \n", p.x, p.y, p.z);
+		//fprintf(file, "%d %s %15.4f  %15.4f  %15.4f  %d %d %d %d %d %d %d %d \n", Amount, str, p.x, p.y, p.z, 0, 0, 0, 0, 0, 0, 1, 0);
+		fprintf(file, "%15.4f  %15.4f  %15.4f \n", p.x, p.y, p.z);
 	}
 
 	vector<Point3> defineBasePoints_(int k)
@@ -212,14 +212,7 @@ void SnailStructure::triangle1(Point3 A, Point3 B, Point3 C, int N, int K)   //ф
 	for (int i = 0; i < N + 1; i++)
 	{
 		Point3 p = A + (I + J) / 3 + i * I;
-
-		if (ROUND_SNAIL && K != 0)
-		{
-			p = round(p, K);
-		}
-		
-		Amount++;
-		fprintf(file, "%d %s %15.4f  %15.4f  %15.4f  %d %d %d %d %d %d %d %d \n", Amount, str, p.x, p.y, p.z, 0, 0, 0, 0, 0, 0, 1, 0);
+		writePoint(p, K);
 	}
 
 	for (int i = 0; i < N; i++)
@@ -488,110 +481,7 @@ int main()
 	SnailStructure ss = SnailStructure();                 //замощение соответственных треугольников молекулами на соответствующих витках
 	ss.defineBasePoints(k);
 	ss.build();
-	/*
-	Point3 A, B, C, B1, C1;
-	A = basePoints[0];
-	B = basePoints[3];
-	C = basePoints[6];
-	triangle1(A, B, C, 0, 1);
-	A = basePoints[1];
-	B = basePoints[4];
-	C = basePoints[7];
-	triangle1(A, B, C, 0, 1);
-	A = basePoints[2];
-	B = basePoints[3];
-	C = basePoints[4];
-	triangle1(A, B, C, 0, 1);
 
-
-	for (int j = 1; j < k - 1; j = j + 2)
-	{
-		int i;
-		i = (j - 1) / 2;
-		A = basePoints[3 * j];
-		B = basePoints[3 * j + 1];
-		C = basePoints[3 * j + 2];
-		ss->triangle1(A, B, C, i, i + 2);
-		A = basePoints[3 * j];
-		B = basePoints[3 * j + 3];
-		C = basePoints[3 * j + 2];
-		ss->triangle1(A, B, C, i, i + 2);
-		A = basePoints[3 * j + 4];
-		B = basePoints[3 * j + 1];
-		C = basePoints[3 * j + 2];
-		ss->triangle1(A, B, C, i, i + 2);
-		A = basePoints[3 * j + 3];
-		B = basePoints[3 * j + 2];
-		C = basePoints[3 * j + 5];
-		ss->triangle2(A, B, C, i, i + 2);
-		A = basePoints[3 * j + 4];
-		B = basePoints[3 * j + 2];
-		C = basePoints[3 * j + 5];
-		ss->triangle2(A, B, C, i, i + 2);
-		A = basePoints[3 * j + 5];
-		B = basePoints[3 * j + 6];
-		C = basePoints[3 * j + 3];
-		ss->triangle3(A, B, C, i, i + 2);
-		A = basePoints[3 * j + 5];
-		B = basePoints[3 * j + 7];
-		C = basePoints[3 * j + 4];
-		ss->triangle3(A, B, C, i, i + 2);
-		A = basePoints[3 * j + 5];
-		B = basePoints[3 * j + 6];
-		C = basePoints[3 * j + 7];
-		ss->triangle1(A, B, C, i + 1, i + 2);
-		A = basePoints[3 * j + 6];
-		B = basePoints[3 * j + 9];
-		C = basePoints[3 * j + 3];
-		ss->triangle2_2(A, B, C, i + 1, i + 2);
-		A = basePoints[3 * j + 7];
-		B = basePoints[3 * j + 10];
-		C = basePoints[3 * j + 4];
-		ss->triangle2_2(A, B, C, i + 1, i + 2);
-	}
-	int j = k - 1;
-	int i = (j - 1) / 2;
-	A = basePoints[3 * j];
-	B = basePoints[3 * j + 1];
-	C = basePoints[3 * j + 2];
-	ss->triangle1(A, B, C, i, i + 2);
-	A = basePoints[3 * j];
-	B = basePoints[3 * j + 3];
-	C = basePoints[3 * j + 2];
-	ss->triangle1(A, B, C, i, i + 2);
-	A = basePoints[3 * j + 4];
-	B = basePoints[3 * j + 1];
-	C = basePoints[3 * j + 2];
-	ss->triangle1(A, B, C, i, i + 2);
-	A = basePoints[3 * j + 3];
-	B = basePoints[3 * j + 2];
-	C = basePoints[3 * j + 5];
-	ss->triangle2(A, B, C, i, i + 2);
-	A = basePoints[3 * j + 4];
-	B = basePoints[3 * j + 2];
-	C = basePoints[3 * j + 5];
-	ss->triangle2(A, B, C, i, i + 2);
-	A = basePoints[3 * j + 5];
-	B = basePoints[3 * j + 6];
-	C = basePoints[3 * j + 3];
-	ss->triangle3(A, B, C, i, i + 2);
-	A = basePoints[3 * j + 5];
-	B = basePoints[3 * j + 7];
-	C = basePoints[3 * j + 4];
-	ss->triangle3(A, B, C, i, i + 2);
-	A = basePoints[3 * j + 5];
-	B = basePoints[3 * j + 6];
-	C = basePoints[3 * j + 7];
-	ss->triangle1(A, B, C, i + 1, i + 2);
-	A = basePoints[3 * j + 6];
-	B = basePoints[3 * j + 9];
-	C = basePoints[3 * j + 3];
-	ss->triangle2_1(A, B, C, i + 1, i + 2);
-	A = basePoints[3 * j + 7];
-	B = basePoints[3 * j + 10];
-	C = basePoints[3 * j + 4];
-	ss->triangle2_1(A, B, C, i + 1, i + 2);
-	*/
 	/*
 		 int i=3;
 		 int j=7;
