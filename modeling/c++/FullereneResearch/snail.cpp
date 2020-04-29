@@ -6,6 +6,7 @@
 #include <conio.h>
 #include <string.h>
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -65,13 +66,9 @@ class PolarPoint // точка в параметризованных координатах
 {
 public:
 	double r, fi, psi;
-	int k;
-
-	Point3 IcoV[3]; // массив для записи трех точек на одном четверть-витке
 
 	Point3 transToDecart(PolarPoint B); //функция преобразования в декартовы координаты
-	double polarDistance(PolarPoint A, PolarPoint B); // функция опредяляющая расстояние между точками в параметрических координатах
-	void defineBasePoints(int k);
+	double polarDistance(PolarPoint A, PolarPoint B); // функция опредяляющая расстояние между точками в параметрических координатах	
 };
 
 Point3 PolarPoint::transToDecart(PolarPoint B)
@@ -84,91 +81,126 @@ Point3 PolarPoint::transToDecart(PolarPoint B)
 }
 
 
-/*функция, позволяющая найти вершивы икосаедрической спирали, ее вершины являются вершинами треугольников типа 1,2,3; K - номер витка */
-void PolarPoint::defineBasePoints(int k)     //
-{
-	PolarPoint PIcoV[3];            //icosaeder vertex in polar coordinates
-   //double x,y,z;
-	double tan_value = 1.618;
-
-	if (k % 2 == 0)
-	{
-		PIcoV[0].fi = pi * k / 2;
-		PIcoV[0].psi = atan(tan_value);
-		PIcoV[0].r = k * coeff + coeff2;
-
-		PIcoV[1].fi = pi * k / 2;
-		PIcoV[1].psi = pi - atan(tan_value);
-		PIcoV[1].r = k * coeff + coeff2;
-
-		PIcoV[2].fi = pi * k / 2 + atan(tan_value);
-		PIcoV[2].psi = pi / 2;
-		PIcoV[2].r = k * coeff + coeff2;
-	}
-	else if (k != 1)
-	{
-		PIcoV[0].fi = pi * k / 2;
-		PIcoV[0].psi = atan(1 / tan_value);
-		PIcoV[0].r = (k - 1) * coeff + coeff2;
-
-		PIcoV[1].fi = pi * k / 2;
-		PIcoV[1].psi = pi - atan(1 / tan_value);
-		PIcoV[1].r = (k - 1) * coeff + coeff2;
-
-		PIcoV[2].fi = pi * k / 2 + atan(1 / tan_value);
-		PIcoV[2].psi = pi / 2;
-		PIcoV[2].r = (k + 1) * coeff + coeff2;
-	}
-	else if (k == 1)
-	{
-		PIcoV[0].fi = pi * k / 2;
-		PIcoV[0].psi = atan(1 / tan_value);
-		PIcoV[0].r = 2 * coeff + coeff2;
-
-		PIcoV[1].fi = pi * k / 2;
-		PIcoV[1].psi = pi - atan(1 / tan_value);
-		PIcoV[1].r = 2 * coeff + coeff2;
-
-		PIcoV[2].fi = pi * k / 2 + atan(1 / tan_value);
-		PIcoV[2].psi = pi / 2;
-		PIcoV[2].r = 2 * coeff + coeff2;
-	}
-
-	for (int i = 0; i < 3; i++)
-	{
-		IcoV[i].x = PIcoV[i].r * sin(PIcoV[i].psi) * cos(PIcoV[i].fi);
-		IcoV[i].y = PIcoV[i].r * cos(PIcoV[i].psi);
-		IcoV[i].z = PIcoV[i].r * sin(PIcoV[i].psi) * sin(PIcoV[i].fi);
-		//IcoV[i]=TransToDecart(PIcoV[i]);
-
-	}
-}
-
 class SnailStructure
 {
 	FILE* file;
 	Point3 A, B, C; // вершины треугольника
 	int N; // к-во шестиугольников в наименьшей хорошей стороне
+	
+	vector<Point3> basePoints;
+	int num;
+
 public:
 	SnailStructure() {
-		fopen_s(&file, "result1.out", "a");
+		fopen_s(&file, "result1.out", "w");
 		fprintf(file, "%s %s %s  %s  %s  %s %s \n", "ATOM", "TYPE", "POSITION(Astrm)", "VELOCITY(km/s)", "KE(eV)", "PE(eV)", "TE(eV)");
 	}
 
 	SnailStructure(const char * fileName) {
-		fopen_s(&file, fileName, "a");
+		fopen_s(&file, fileName, "w");
 		fprintf(file, "%s %s %s  %s  %s  %s %s \n", "ATOM", "TYPE", "POSITION(Astrm)", "VELOCITY(km/s)", "KE(eV)", "PE(eV)", "TE(eV)");
 	}
 
 	~SnailStructure() {
+		fprintf(file, "\n \n \n \n");
 		fclose(file);
 	}
+
+	void writePoint(Point3 p, int K) const
+	{
+		if (ROUND_SNAIL && K != 0) p = round(p, K);
+
+		Amount++;
+		
+		fprintf(file, "%d %s %15.4f  %15.4f  %15.4f  %d %d %d %d %d %d %d %d \n", Amount, str, p.x, p.y, p.z, 0, 0, 0, 0, 0, 0, 1, 0);
+		//fprintf(file, "%15.4f  %15.4f  %15.4f \n", p.x, p.y, p.z);
+	}
+
+	vector<Point3> defineBasePoints_(int k)
+	{
+		PolarPoint PIcoV[3];            //icosaeder vertex in polar coordinates
+   //double x,y,z;
+		double tan_value = 1.618;
+
+		if (k % 2 == 0)
+		{
+			PIcoV[0].fi = pi * k / 2;
+			PIcoV[0].psi = atan(tan_value);
+			PIcoV[0].r = k * coeff + coeff2;
+
+			PIcoV[1].fi = pi * k / 2;
+			PIcoV[1].psi = pi - atan(tan_value);
+			PIcoV[1].r = k * coeff + coeff2;
+
+			PIcoV[2].fi = pi * k / 2 + atan(tan_value);
+			PIcoV[2].psi = pi / 2;
+			PIcoV[2].r = k * coeff + coeff2;
+		}
+		else if (k != 1)
+		{
+			PIcoV[0].fi = pi * k / 2;
+			PIcoV[0].psi = atan(1 / tan_value);
+			PIcoV[0].r = (k - 1) * coeff + coeff2;
+
+			PIcoV[1].fi = pi * k / 2;
+			PIcoV[1].psi = pi - atan(1 / tan_value);
+			PIcoV[1].r = (k - 1) * coeff + coeff2;
+
+			PIcoV[2].fi = pi * k / 2 + atan(1 / tan_value);
+			PIcoV[2].psi = pi / 2;
+			PIcoV[2].r = (k + 1) * coeff + coeff2;
+		}
+		else if (k == 1)
+		{
+			PIcoV[0].fi = pi * k / 2;
+			PIcoV[0].psi = atan(1 / tan_value);
+			PIcoV[0].r = 2 * coeff + coeff2;
+
+			PIcoV[1].fi = pi * k / 2;
+			PIcoV[1].psi = pi - atan(1 / tan_value);
+			PIcoV[1].r = 2 * coeff + coeff2;
+
+			PIcoV[2].fi = pi * k / 2 + atan(1 / tan_value);
+			PIcoV[2].psi = pi / 2;
+			PIcoV[2].r = 2 * coeff + coeff2;
+		}
+
+		vector<Point3> IcoV;
+		for (int i = 0; i < 3; i++)
+		{
+			double x = PIcoV[i].r * sin(PIcoV[i].psi) * cos(PIcoV[i].fi);
+			double y = PIcoV[i].r * cos(PIcoV[i].psi);
+			double z = PIcoV[i].r * sin(PIcoV[i].psi) * sin(PIcoV[i].fi);
+			IcoV.push_back(Point3(x, y, z));
+			//IcoV[i]=TransToDecart(PIcoV[i]);
+
+		}
+		return IcoV;
+	}
+
+	void defineBasePoints(int k)
+	{
+		num = k;
+		basePoints.resize(3 * (num + 5));
+		for (int i = 1; i < num + 6; i++)                 // вычисление координат вершин, и записи их в массив начиная с угла 2пи
+		{
+			vector<Point3> IcoV = defineBasePoints_(i);
+			for (int j = 0; j < 3; j++)
+			{
+				basePoints[3 * (i - 1) + j] = IcoV[j];
+			}
+		}
+	}
+
+	
 
 	void triangle1(Point3 A, Point3 B, Point3 C, int N, int K = 0);
 	void triangle2(Point3 A, Point3 B, Point3 C, int N, int K = 0);
 	void triangle3(Point3 A, Point3 B, Point3 C, int N, int K = 0);
 	void triangle2_1(Point3 A, Point3 B, Point3 C, int N, int K = 0);
 	void triangle2_2(Point3 A, Point3 B, Point3 C, int N, int K = 0);
+
+	void build();
 
 };
 
@@ -194,181 +226,82 @@ void SnailStructure::triangle1(Point3 A, Point3 B, Point3 C, int N, int K)   //ф
 		for (int j = 0; j < N - i; j++)
 		{
 			Point3 p = A + (I + J) * 2 / 3 + j * I + i * J;			
-			if (ROUND_SNAIL && K != 0)
-			{
-				p = round(p, K);
-			}
-			Amount++;
-			fprintf(file, "%d %s %15.4f  %15.4f  %15.4f  %d %d %d %d %d %d %d %d \n", Amount, str, P.x, P.y, P.z, 0, 0, 0, 0, 0, 0, 1, 0);
+			writePoint(p, K);
 			
 			p = p + (2 * J - I) / 3;
-			if (ROUND_SNAIL && K != 0)
-			{
-				p = round(p, K);
-			}
-			Amount++;
-			fprintf(file, "%d %s %15.4f  %15.4f  %15.4f  %d %d %d %d %d %d %d %d \n", Amount, str, P.x, P.y, P.z, 0, 0, 0, 0, 0, 0, 1, 0);
+			writePoint(p, K);
 		}
 }
 
 void SnailStructure::triangle2(Point3 A, Point3 B, Point3 C, int N, int K)   //функция замощения молекулами треугольника типа 2 со "хорошей" стороной состоящей из N шестиугольников
 {
 	Point3 C1, P;
-	C1.x = C.x - (C.x - B.x) / (N + 2);
-	C1.y = C.y - (C.y - B.y) / (N + 2);
-	C1.z = C.z - (C.z - B.z) / (N + 2);
+	C1 = C - (C - B) / (N + 2);
 	triangle1(A, B, C1, N, K);                                    //замощаем правильный треугольник, далее добавим недостающие точки
-	Point3 I, J;
-	double x, y, z;
+	
+	Point3 I = (B - A) / (N + 1);
+	Point3 J = (C1 - A) / (N + 1);              //basis vectors in triangle plane
 
-	I.x = (-A.x + B.x) / (N + 1);
-	I.y = (-A.y + B.y) / (N + 1);
-	I.z = (-A.z + B.z) / (N + 1);
-
-
-	J.x = (-A.x + C1.x) / (N + 1);
-	J.y = (-A.y + C1.y) / (N + 1);
-	J.z = (-A.z + C1.z) / (N + 1);
-
-
-	FILE * file;                                       //дописываем в файл недостающие точки
-	fopen_s(&file, "result1.out", "a");
 	if (N == 0)
 	{
-		x = C1.x + J.x - (I.x + J.x) * 2 / 3;
-		y = C1.y + J.y - (I.y + J.y) * 2 / 3;
-		z = C1.z + J.z - (I.z + J.z) * 2 / 3;
-		rv = coeff * (asin(z / sqrt(x * x + z * z)) + pi * K) / pi;
-		P.x = x * rv / sqrt(x * x + y * y + z * z);
-		P.y = y * rv / sqrt(x * x + y * y + z * z);
-		P.z = z * rv / sqrt(x * x + y * y + z * z);
-		Amount++;
-		fprintf(file, "%d %s %15.4f  %15.4f  %15.4f  %d %d %d %d %d %d %d %d \n", Amount, str, P.x, P.y, P.z, 0, 0, 0, 0, 0, 0, 1, 0);
+		Point3 p = C1 + J - (I - J) * (2 / 3);
+		writePoint(p, K);
 	}
 	else
 	{
 		for (int i = 0; i < N + 1; i++)
 		{
 			int i1 = i / 2;
-			x = C1.x + J.x - (I.x + J.x) * 2 / 3 - (i1 + (i % 2)) * (2 * J.x - I.x) / 3 - i1 * (I.x + J.x) / 3;
-			y = C1.y + J.y - (I.y + J.y) * 2 / 3 - (i1 + (i % 2)) * (2 * J.y - I.y) / 3 - i1 * (I.y + J.y) / 3;
-			z = C1.z + J.z - (I.z + J.z) * 2 / 3 - (i1 + (i % 2)) * (2 * J.z - I.z) / 3 - i1 * (I.z + J.z) / 3;
-			rv = coeff * (asin(z / sqrt(x * x + z * z)) + pi * K) / pi;
-			P.x = x * rv / sqrt(x * x + y * y + z * z);
-			P.y = y * rv / sqrt(x * x + y * y + z * z);
-			P.z = z * rv / sqrt(x * x + y * y + z * z);
-			Amount++;
-			fprintf(file, "%d %s %15.4f  %15.4f  %15.4f  %d %d %d %d %d %d %d %d \n", Amount, str, P.x, P.y, P.z, 0, 0, 0, 0, 0, 0, 1, 0);
+			Point3 p = C1 + J - (I - J) * (2 / 3) - (i1 + (i % 2)) * (2 * J - I) / 3 - i1 * (I + J) / 3;
+			writePoint(p, K);
 		}
 	}
-	fclose(file);
-
 }
 
 void SnailStructure::triangle3(Point3 A, Point3 B, Point3 C, int N, int K)   //замощение треугольника типа 3
 {
-	Point3 C1, B1, P;
-
-	B1.x = B.x - (B.x - A.x) / (N + 2);
-	B1.y = B.y - (B.y - A.y) / (N + 2);
-	B1.z = B.z - (B.z - A.z) / (N + 2);
-
-	C1.x = C.x - (C.x - B1.x) / (N + 2);
-	C1.y = C.y - (C.y - B1.y) / (N + 2);
-	C1.z = C.z - (C.z - B1.z) / (N + 2);
-
+	Point3 B1 = B - (B - A) / (N + 2);
+	Point3 C1 = C - (C - B1) / (N + 2);
+ 	
 
 	triangle2(A, B1, C, N, K);
-	Point3 I, J;
-	double x, y, z;
-
-	I.x = (-C1.x + A.x) / (N + 1);
-	I.y = (-C1.y + A.y) / (N + 1);
-	I.z = (-C1.z + A.z) / (N + 1);
-
-
-	J.x = (-C1.x + B1.x) / (N + 1);
-	J.y = (-C1.y + B1.y) / (N + 1);
-	J.z = (-C1.z + B1.z) / (N + 1);
-
-
-	FILE * file;
-	fopen_s(&file, "result1.out", "a");
-
+	Point3 I = (A - C1) / (N + 1);
+	Point3 J = (B1 -C1) / (N + 1);
+	
 	for (int i = 0; i < N + 2; i++)
 	{
 		int i1 = i / 2;
-		x = B1.x + J.x - (I.x + J.x) * 2 / 3 - (i1 + (i % 2)) * (2 * J.x - I.x) / 3 - i1 * (I.x + J.x) / 3;
-		y = B1.y + J.y - (I.y + J.y) * 2 / 3 - (i1 + (i % 2)) * (2 * J.y - I.y) / 3 - i1 * (I.y + J.y) / 3;
-		z = B1.z + J.z - (I.z + J.z) * 2 / 3 - (i1 + (i % 2)) * (2 * J.z - I.z) / 3 - i1 * (I.z + J.z) / 3;
-		rv = coeff * (asin(z / sqrt(x * x + z * z)) + pi * K) / pi;
-		P.x = x * rv / sqrt(x * x + y * y + z * z);
-		P.y = y * rv / sqrt(x * x + y * y + z * z);
-		P.z = z * rv / sqrt(x * x + y * y + z * z);
-		Amount++;
-		fprintf(file, "%d %s %15.4f  %15.4f  %15.4f  %d %d %d %d %d %d %d %d \n", Amount, str, P.x, P.y, P.z, 0, 0, 0, 0, 0, 0, 1, 0);
+		Point3 p = B1 + J - (I + J) * 2 / 3 - (i1 + (i % 2)) * (2 * J - I) / 3 - i1 * (I + J) / 3;
+		writePoint(p, K);		
 	}
-	fclose(file);
-
 }
 
 void SnailStructure::triangle2_1(Point3 A, Point3 B, Point3 C, int N, int K)   //функция замощения молекулами треугольника типа 2 со "хорошей" стороной состоящей из N шестиугольников
 {
-	Point3 C1, P;
+	Point3 C1 = C - (C - B) / (N+2);
+	
 	C1.x = C.x - (C.x - B.x) / (N + 2);
 	C1.y = C.y - (C.y - B.y) / (N + 2);
 	C1.z = C.z - (C.z - B.z) / (N + 2);
 
-	Point3 I, J;                                                   //вводим вектора в локальной плоскости треугольника
-	double x, y, z;
+	Point3 I = (B -A) / (N + 1);
+	Point3 J = (C1 - A) / (N + 1);      
 
-	I.x = (-A.x + B.x) / (N + 1);
-	I.y = (-A.y + B.y) / (N + 1);
-	I.z = (-A.z + B.z) / (N + 1);
-
-
-	J.x = (-A.x + C1.x) / (N + 1);
-	J.y = (-A.y + C1.y) / (N + 1);
-	J.z = (-A.z + C1.z) / (N + 1);
-
-	FILE * file;                                                 //координаты молекул не хранятся в массиве, а сразу записываются в файл
-	fopen_s(&file, "result1.out", "a");
-
-	x = A.x + (I.x + J.x) / 3;
-	y = A.y + (I.y + J.y) / 3;
-	z = A.z + (I.z + J.z) / 3;
-	rv = coeff * (asin(z / sqrt(x * x + z * z)) + pi * K) / pi;
-	P.x = x * rv / sqrt(x * x + y * y + z * z);
-	P.y = y * rv / sqrt(x * x + y * y + z * z);
-	P.z = z * rv / sqrt(x * x + y * y + z * z);
-	Amount++;
-	fprintf(file, "%d %s %15.4f  %15.4f  %15.4f  %d %d %d %d %d %d %d %d \n", Amount, str, P.x, P.y, P.z, 0, 0, 0, 0, 0, 0, 1, 0);
+	Point3 p = A + (I + J) / 3;
+	writePoint(p, K);
+	
 	for (int i = 0; i < N; i++)
 		for (int j = 0; j < N - i; j++)
 		{
-			x = A.x + (I.x + J.x) * 2 / 3 + i * I.x + j * J.x;
-			y = A.y + (I.y + J.y) * 2 / 3 + i * I.y + j * J.y;
-			z = A.z + (I.z + J.z) * 2 / 3 + i * I.z + j * J.z;
-
-			if (j >= i) {                                                     //мостим только половину треугольника
-				rv = coeff * (asin(z / sqrt(x * x + z * z)) + pi * K) / pi;
-				P.x = x * rv / sqrt(x * x + y * y + z * z);
-				P.y = y * rv / sqrt(x * x + y * y + z * z);
-				P.z = z * rv / sqrt(x * x + y * y + z * z);
-				Amount++;
-				fprintf(file, "%d %s %15.4f  %15.4f  %15.4f  %d %d %d %d %d %d %d %d \n", Amount, str, P.x, P.y, P.z, 0, 0, 0, 0, 0, 0, 1, 0);
+			Point3 p = A + (I + J) * 2 / 3 + i * I + j * J;
+			if (j >= i) //мостим только половину треугольника
+			{     
+				writePoint(p, K);
 			}
-			x = x + (2 * J.x - I.x) / 3;
-			y = y + (2 * J.y - I.y) / 3;
-			z = z + (2 * J.z - I.z) / 3;
-			rv = coeff * (asin(z / sqrt(x * x + z * z)) + pi * K) / pi;
-			P.x = x * rv / sqrt(x * x + y * y + z * z);
-			P.y = y * rv / sqrt(x * x + y * y + z * z);
-			P.z = z * rv / sqrt(x * x + y * y + z * z);
+			
+			p = p + (2 * J - I) / 3;			
 			if ((j + 1) >= i) {
-
-				Amount++;
-				fprintf(file, "%d %s %15.4f  %15.4f  %15.4f  %d %d %d %d %d %d %d %d \n", Amount, str, P.x, P.y, P.z, 0, 0, 0, 0, 0, 0, 1, 0);
+				writePoint(p, K);
 			}
 		}
 
@@ -376,99 +309,148 @@ void SnailStructure::triangle2_1(Point3 A, Point3 B, Point3 C, int N, int K)   /
 	for (int i = 0; i < N + 1; i++)
 	{
 		int i1 = i / 2;
-		x = C1.x + J.x - (I.x + J.x) * 2 / 3 - (i1 + (i % 2)) * (2 * J.x - I.x) / 3 - i1 * (I.x + J.x) / 3;
-		y = C1.y + J.y - (I.y + J.y) * 2 / 3 - (i1 + (i % 2)) * (2 * J.y - I.y) / 3 - i1 * (I.y + J.y) / 3;
-		z = C1.z + J.z - (I.z + J.z) * 2 / 3 - (i1 + (i % 2)) * (2 * J.z - I.z) / 3 - i1 * (I.z + J.z) / 3;
-		rv = coeff * (asin(z / sqrt(x * x + z * z))) + pi * K / pi;
-		P.x = x * rv / sqrt(x * x + y * y + z * z);
-		P.y = y * rv / sqrt(x * x + y * y + z * z);
-		P.z = z * rv / sqrt(x * x + y * y + z * z);
-		Amount++;
-		fprintf(file, "%d %s %15.4f  %15.4f  %15.4f  %d %d %d %d %d %d %d %d \n", Amount, str, P.x, P.y, P.z, 0, 0, 0, 0, 0, 0, 1, 0);
+		Point3 p = C1 + J - (I + J) * 2 / 3 - (i1 + (i % 2)) * (2 * J - I) / 3 - i1 * (I + J) / 3;
+		writePoint(p, K);		
 	}
-	fclose(file);
-
 }
 
 void SnailStructure::triangle2_2(Point3 A, Point3 B, Point3 C, int N, int K)   //функция замощения молекулами треугольника типа 2 со "хорошей" стороной состоящей из N шестиугольников
 {
-	Point3 C1, P;
-	C1.x = C.x - (C.x - B.x) / (N + 2);
-	C1.y = C.y - (C.y - B.y) / (N + 2);
-	C1.z = C.z - (C.z - B.z) / (N + 2);
+	Point3 C1 = C - (C - B) / (N + 2);
 
-	Point3 I, J;                                                   //вводим вектора в локальной плоскости треугольника
-	double x, y, z;
+	Point3 I = (B - A) / (N + 1);
+	Point3 J = (C1 - A) / (N + 1);;                                                   //вводим вектора в локальной плоскости треугольника
 
-	I.x = (-A.x + B.x) / (N + 1);
-	I.y = (-A.y + B.y) / (N + 1);
-	I.z = (-A.z + B.z) / (N + 1);
-
-
-	J.x = (-A.x + C1.x) / (N + 1);
-	J.y = (-A.y + C1.y) / (N + 1);
-	J.z = (-A.z + C1.z) / (N + 1);
-
-	FILE * file;                                                 //координаты молекул не хранятся в массиве, а сразу записываются в файл
-	fopen_s(&file, "result1.out", "a");
-
-	x = A.x + (I.x + J.x) / 3;
-	y = A.y + (I.y + J.y) / 3;
-	z = A.z + (I.z + J.z) / 3;
-	rv = coeff * (asin(z / sqrt(x * x + z * z)) + pi * K) / pi;
-	P.x = x * rv / sqrt(x * x + y * y + z * z);
-	P.y = y * rv / sqrt(x * x + y * y + z * z);
-	P.z = z * rv / sqrt(x * x + y * y + z * z);
-	Amount++;
-	fprintf(file, "%d %s %15.4f  %15.4f  %15.4f  %d %d %d %d %d %d %d %d \n", Amount, str, P.x, P.y, P.z, 0, 0, 0, 0, 0, 0, 1, 0);
+	Point3 p = A + (I + J) / 3;
+	writePoint(p, K);
+		
 	for (int i = 0; i < N; i++)
+	{
 		for (int j = 0; j < N - i; j++)
 		{
-			x = A.x + (I.x + J.x) * 2 / 3 + i * I.x + j * J.x;
-			y = A.y + (I.y + J.y) * 2 / 3 + i * I.y + j * J.y;
-			z = A.z + (I.z + J.z) * 2 / 3 + i * I.z + j * J.z;
+			p = A + (I + J) * 2 / 3 + i * I + j * J;
 
-			if (j >= i)                                                      //мостим только половину треугольника
-				rv = coeff * (asin(z / sqrt(x * x + z * z)) + pi * K) / pi;
-			else
-				rv = coeff * (asin(z / sqrt(x * x + z * z) + pi) + pi * (K + 1)) / pi;
-			P.x = x * rv / sqrt(x * x + y * y + z * z);
-			P.y = y * rv / sqrt(x * x + y * y + z * z);
-			P.z = z * rv / sqrt(x * x + y * y + z * z);
-			Amount++;
-			fprintf(file, "%d %s %15.4f  %15.4f  %15.4f  %d %d %d %d %d %d %d %d \n", Amount, str, P.x, P.y, P.z, 0, 0, 0, 0, 0, 0, 1, 0);
-			x = x + (2 * J.x - I.x) / 3;
-			y = y + (2 * J.y - I.y) / 3;
-			z = z + (2 * J.z - I.z) / 3;
+			//мостим только половину треугольника
+			if (j >= i) writePoint(p, K);
+			else writePoint(p, K + 1);
 
-			if ((j + 1) >= i)
-				rv = coeff * (asin(z / sqrt(x * x + z * z)) + pi * K) / pi;
-			else
-				rv = coeff * (asin(z / sqrt(x * x + z * z) + pi) + pi * (K + 1)) / pi;
-			P.x = x * rv / sqrt(x * x + y * y + z * z);
-			P.y = y * rv / sqrt(x * x + y * y + z * z);
-			P.z = z * rv / sqrt(x * x + y * y + z * z);
-			Amount++;
-			fprintf(file, "%d %s %15.4f  %15.4f  %15.4f  %d %d %d %d %d %d %d %d \n", Amount, str, P.x, P.y, P.z, 0, 0, 0, 0, 0, 0, 1, 0);
+			p = p + (2 * J - I) / 3;
+			if ((j + 1) >= i) writePoint(p, K);
+			else writePoint(p, K + 1);
 		}
-
+	}
 
 	for (int i = 0; i < N + 1; i++)
 	{
 		int i1 = i / 2;
-		x = C1.x + J.x - (I.x + J.x) * 2 / 3 - (i1 + (i % 2)) * (2 * J.x - I.x) / 3 - i1 * (I.x + J.x) / 3;
-		y = C1.y + J.y - (I.y + J.y) * 2 / 3 - (i1 + (i % 2)) * (2 * J.y - I.y) / 3 - i1 * (I.y + J.y) / 3;
-		z = C1.z + J.z - (I.z + J.z) * 2 / 3 - (i1 + (i % 2)) * (2 * J.z - I.z) / 3 - i1 * (I.z + J.z) / 3;
-		rv = coeff * (asin(z / sqrt(x * x + z * z)) + pi * K) / pi;
-		P.x = x * rv / sqrt(x * x + y * y + z * z);
-		P.y = y * rv / sqrt(x * x + y * y + z * z);
-		P.z = z * rv / sqrt(x * x + y * y + z * z);
-		Amount++;
-		fprintf(file, "%d %s %15.4f  %15.4f  %15.4f  %d %d %d %d %d %d %d %d \n", Amount, str, P.x, P.y, P.z, 0, 0, 0, 0, 0, 0, 1, 0);
+		p = C1 + J - (I + J) * 2 / 3 - (i1 + (i % 2)) * (2 * J - I) / 3 - i1 * (I + J) / 3;	
+		writePoint(p, K);
 	}
-	fclose(file);
+}
 
+void SnailStructure::build()
+{
+	Point3 A, B, C, B1, C1;
+	A = basePoints[0];
+	B = basePoints[3];
+	C = basePoints[6];
+	triangle1(A, B, C, 0, 1);
+	A = basePoints[1];
+	B = basePoints[4];
+	C = basePoints[7];
+	triangle1(A, B, C, 0, 1);
+	A = basePoints[2];
+	B = basePoints[3];
+	C = basePoints[4];
+	triangle1(A, B, C, 0, 1);
 
+	for (int j = 1; j < num - 1; j = j + 2)
+	{
+		int i;
+		i = (j - 1) / 2;
+		A = basePoints[3 * j];
+		B = basePoints[3 * j + 1];
+		C = basePoints[3 * j + 2];
+		triangle1(A, B, C, i, i + 2);
+		A = basePoints[3 * j];
+		B = basePoints[3 * j + 3];
+		C = basePoints[3 * j + 2];
+		triangle1(A, B, C, i, i + 2);
+		A = basePoints[3 * j + 4];
+		B = basePoints[3 * j + 1];
+		C = basePoints[3 * j + 2];
+		triangle1(A, B, C, i, i + 2);
+		A = basePoints[3 * j + 3];
+		B = basePoints[3 * j + 2];
+		C = basePoints[3 * j + 5];
+		triangle2(A, B, C, i, i + 2);
+		A = basePoints[3 * j + 4];
+		B = basePoints[3 * j + 2];
+		C = basePoints[3 * j + 5];
+		triangle2(A, B, C, i, i + 2);
+		A = basePoints[3 * j + 5];
+		B = basePoints[3 * j + 6];
+		C = basePoints[3 * j + 3];
+		triangle3(A, B, C, i, i + 2);
+		A = basePoints[3 * j + 5];
+		B = basePoints[3 * j + 7];
+		C = basePoints[3 * j + 4];
+		triangle3(A, B, C, i, i + 2);
+		A = basePoints[3 * j + 5];
+		B = basePoints[3 * j + 6];
+		C = basePoints[3 * j + 7];
+		triangle1(A, B, C, i + 1, i + 2);
+		A = basePoints[3 * j + 6];
+		B = basePoints[3 * j + 9];
+		C = basePoints[3 * j + 3];
+		triangle2_2(A, B, C, i + 1, i + 2);
+		A = basePoints[3 * j + 7];
+		B = basePoints[3 * j + 10];
+		C = basePoints[3 * j + 4];
+		triangle2_2(A, B, C, i + 1, i + 2);
+	}
+	int j = num - 1;
+	int i = (j - 1) / 2;
+	A = basePoints[3 * j];
+	B = basePoints[3 * j + 1];
+	C = basePoints[3 * j + 2];
+	triangle1(A, B, C, i, i + 2);
+	A = basePoints[3 * j];
+	B = basePoints[3 * j + 3];
+	C = basePoints[3 * j + 2];
+	triangle1(A, B, C, i, i + 2);
+	A = basePoints[3 * j + 4];
+	B = basePoints[3 * j + 1];
+	C = basePoints[3 * j + 2];
+	triangle1(A, B, C, i, i + 2);
+	A = basePoints[3 * j + 3];
+	B = basePoints[3 * j + 2];
+	C = basePoints[3 * j + 5];
+	triangle2(A, B, C, i, i + 2);
+	A = basePoints[3 * j + 4];
+	B = basePoints[3 * j + 2];
+	C = basePoints[3 * j + 5];
+	triangle2(A, B, C, i, i + 2);
+	A = basePoints[3 * j + 5];
+	B = basePoints[3 * j + 6];
+	C = basePoints[3 * j + 3];
+	triangle3(A, B, C, i, i + 2);
+	A = basePoints[3 * j + 5];
+	B = basePoints[3 * j + 7];
+	C = basePoints[3 * j + 4];
+	triangle3(A, B, C, i, i + 2);
+	A = basePoints[3 * j + 5];
+	B = basePoints[3 * j + 6];
+	C = basePoints[3 * j + 7];
+	triangle1(A, B, C, i + 1, i + 2);
+	A = basePoints[3 * j + 6];
+	B = basePoints[3 * j + 9];
+	C = basePoints[3 * j + 3];
+	triangle2_1(A, B, C, i + 1, i + 2);
+	A = basePoints[3 * j + 7];
+	B = basePoints[3 * j + 10];
+	C = basePoints[3 * j + 4];
+	triangle2_1(A, B, C, i + 1, i + 2);
 }
 
 /*Polarpoint::Polarpoint(double R,double Fi,double Psi) //конструктор
@@ -502,34 +484,24 @@ int main()
 	cout << "enter k(number of 1/2 spitar turns)";
 	cin >> k;
 	k = k * 2;
-	Point3* basePoints = new Point3[3 * (k + 5)];            //массив вершин спирального икосаедра
-
-	for (int i = 1; i < k + 6; i++)                 // вычисление координат вершин, и записи их в массив начиная с угла 2пи
-	{
-		PolarPoint* kk = new PolarPoint();
-		kk->defineBasePoints(i);
-		for (int j = 0; j < 3; j++)
-		{
-			basePoints[3 * (i - 1) + j] = kk->IcoV[j];
-		}
-		delete kk;
-	}
-
-	SnailStructure* ss = new SnailStructure();                 //замощение соответственных треугольников молекулами на соответствующих витках
-
+	
+	SnailStructure ss = SnailStructure();                 //замощение соответственных треугольников молекулами на соответствующих витках
+	ss.defineBasePoints(k);
+	ss.build();
+	/*
 	Point3 A, B, C, B1, C1;
 	A = basePoints[0];
 	B = basePoints[3];
 	C = basePoints[6];
-	ss->triangle1(A, B, C, 0, 1);
+	triangle1(A, B, C, 0, 1);
 	A = basePoints[1];
 	B = basePoints[4];
 	C = basePoints[7];
-	ss->triangle1(A, B, C, 0, 1);
+	triangle1(A, B, C, 0, 1);
 	A = basePoints[2];
 	B = basePoints[3];
 	C = basePoints[4];
-	ss->triangle1(A, B, C, 0, 1);
+	triangle1(A, B, C, 0, 1);
 
 
 	for (int j = 1; j < k - 1; j = j + 2)
@@ -619,6 +591,7 @@ int main()
 	B = basePoints[3 * j + 10];
 	C = basePoints[3 * j + 4];
 	ss->triangle2_1(A, B, C, i + 1, i + 2);
+	*/
 	/*
 		 int i=3;
 		 int j=7;
@@ -1028,10 +1001,8 @@ int main()
 				//ss->triangle3(A,B1,C1,0);
 				//ss->triangle2_1(A,B,C,1);
 
-	fopen_s(&file, "result1.out", "a"); //дописываем несколько пустых строк для визуализатора  
-	fprintf(file, "\n \n \n \n");
-	fclose(file);
-	delete ss;
+	
+	
 	cout << "Amount of carbon atoms = " << Amount << "\n";
 
 	/*  FILE*   file;                               // записываем в файл вершины икосаедрической спирали
@@ -1040,7 +1011,6 @@ int main()
 	 {fprintf( file, "%15.4f  %15.4f  %15.4f  \n", AllCover[j].x,AllCover[j].y,AllCover[j].z);}
 fclose(file);*/
 
-	delete[] basePoints;
 	cout << "tops of icosaedrical spiral from angle 2pi to 2pi*(k+1), are placed in file result.txt \n Coordinates of atoms are placed in file result1.out .\n \n Delete file result1.out before recalculation \n";
 	system("pause");
 	return 0;
